@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jungle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Instrument Serif', Georgia, serif;
+      background: #F5F5F3;
+      color: #1A1A1A;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+
+
+    /* Living glow */
+    .bg-glow {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 60vmax;
+      height: 60vmax;
+      margin-left: -30vmax;
+      margin-top: -30vmax;
+      background: radial-gradient(circle, rgba(224, 138, 30, 0.4) 0%, rgba(224, 138, 30, 0.15) 40%, rgba(224, 138, 30, 0) 70%);
+      pointer-events: none;
+      z-index: -1;
+      border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+      filter: blur(50px);
+      animation: wander 45s ease-in-out infinite, morph 15s ease-in-out infinite;
+      transition: transform 0.3s ease-out;
+    }
+
+    .bg-glow.dragging {
+      animation: morph 15s ease-in-out infinite;
+      transition: none;
+    }
+
+    .mini-blob {
+      position: fixed;
+      width: 15vmax;
+      height: 15vmax;
+      background: radial-gradient(circle, rgba(224, 138, 30, 0.3) 0%, rgba(224, 138, 30, 0) 70%);
+      pointer-events: none;
+      z-index: -1;
+      border-radius: 50%;
+      filter: blur(30px);
+      opacity: 0;
+      transition: opacity 0.5s ease, transform 2s ease-out;
+    }
+
+    @keyframes wander {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      20% { transform: translate(-35vw, -25vh) scale(1.15); }
+      40% { transform: translate(30vw, -35vh) scale(0.9); }
+      60% { transform: translate(35vw, 30vh) scale(1.1); }
+      80% { transform: translate(-30vw, 35vh) scale(1.2); }
+    }
+
+    @keyframes morph {
+      0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+      25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+      50% { border-radius: 50% 60% 30% 60% / 30% 40% 70% 50%; }
+      75% { border-radius: 40% 30% 60% 50% / 60% 50% 40% 30%; }
+    }
+
+    /* Grid */
+    main {
+      position: relative;
+      min-height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 2.5rem 3.5rem;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      opacity: 0;
+      animation: fade-in 1s ease-out forwards;
+    }
+
+    .logo {
+      font-family: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 1.125rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: #999;
+      transition: color 0.2s ease;
+    }
+
+    .logo:hover {
+      color: #E08A1E;
+    }
+
+    /* Hero */
+    .hero {
+      display: flex;
+      align-items: center;
+    }
+
+    .hero-inner {
+      width: 100%;
+      position: relative;
+    }
+
+    .tagline {
+      font-size: clamp(2.75rem, 6vw, 4.5rem);
+      font-weight: 400;
+      letter-spacing: -0.03em;
+      line-height: 1.0;
+      margin-bottom: 2rem;
+      color: #1A1A1A;
+    }
+
+    .tagline .line {
+      display: block;
+      overflow: visible;
+      padding-bottom: 0.05em;
+    }
+
+    .tagline .line-inner {
+      display: block;
+      opacity: 0;
+      transform: translateY(100%);
+      animation: reveal 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+
+    .tagline .line:nth-child(1) .line-inner { animation-delay: 0.2s; }
+    .tagline .line:nth-child(2) .line-inner { animation-delay: 0.35s; }
+
+    .tagline .accent {
+      color: #E08A1E;
+      position: relative;
+    }
+
+    /* Dynamic text that responds to blob */
+    .glow-text {
+      transition: color 0.5s ease;
+    }
+
+    .char {
+      display: inline-block;
+      transition: color 0.3s ease;
+    }
+
+    .word {
+      display: inline;
+      transition: color 0.3s ease;
+    }
+
+    /* Mission */
+    .mission-container {
+      position: absolute;
+      right: 3.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 320px;
+      max-width: 320px;
+      opacity: 0;
+      animation: fade-in 1s ease-out 0.8s forwards;
+    }
+
+    .mission {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 1rem;
+      line-height: 1.6;
+      letter-spacing: -0.01em;
+      color: #6B6B6B;
+    }
+
+    .mission p {
+      margin-bottom: 1.25rem;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fade-up 0.6s ease-out forwards;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .mission p:nth-child(1) { animation-delay: 1s; }
+    .mission p:nth-child(2) { animation-delay: 1.15s; }
+    .mission p:nth-child(3) { animation-delay: 1.3s; }
+
+    .mission p:last-child {
+      margin-bottom: 0;
+    }
+
+    .mission .closing {
+      margin-top: 1.5rem;
+      color: #888;
+    }
+
+    @keyframes fade-up {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Footer */
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      opacity: 0;
+      animation: fade-in 1s ease-out 1s forwards;
+      margin-top: auto;
+      padding-top: 3rem;
+    }
+
+    .footer-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .soon {
+      font-size: 0.9375rem;
+      color: #999;
+      position: relative;
+    }
+
+    .soon::after {
+      content: '...';
+      animation: ellipsis 1.5s steps(4, end) infinite;
+    }
+
+    @keyframes ellipsis {
+      0% { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+      100% { content: ''; }
+    }
+
+    .year {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      color: #CCC;
+      letter-spacing: 0.02em;
+    }
+
+    /* Animations */
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes reveal {
+      from { 
+        opacity: 0;
+        transform: translateY(100%);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .mission-container {
+        position: static;
+        transform: none;
+        width: 320px;
+        max-width: 320px;
+        margin-top: 4rem;
+      }
+
+      .hero {
+        align-items: flex-start;
+        padding-top: 15vh;
+      }
+    }
+
+    @media (max-width: 600px) {
+      main {
+        padding: 2rem;
+      }
+
+      .mission-container {
+        margin-top: 3rem;
+        width: 300px;
+        max-width: 85%;
+      }
+
+      .mission {
+        font-size: 0.9375rem;
+      }
+
+      footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  
+  <main id="page">
+    <header>
+      <div class="logo interactive">Jungle</div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <h1 class="tagline">
+          <span class="line"><span class="line-inner glow-text" data-text="Know yourself.">Know yourself.</span></span>
+          <span class="line"><span class="line-inner accent glow-text" data-text="Find your way.">Find your way.</span></span>
+        </h1>
+
+        <div class="mission-container">
+          <div class="mission">
+            <p class="glow-text" data-text="Every device pulls you outward. Fragments your attention. Replaces your judgment.">Every device pulls you outward. Fragments your attention. Replaces your judgment.</p>
+            <p class="glow-text" data-text="We pull you inward—to know your mind, your body, yourself. Then you decide what to share, who to trust, how to connect.">We pull you inward—to know your mind, your body, yourself. Then you decide what to share, who to trust, how to connect.</p>
+            <p class="closing glow-text" data-text="We build tools for self-knowledge.">We build tools for self-knowledge.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="footer-left">
+        <span class="soon">More soon</span>
+        <span class="year"></span>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // Set current year
+    document.querySelector('.year').textContent = new Date().getFullYear();
+
+    // Interactive elements
+    const blob = document.querySelector('.bg-glow');
+    const glowTexts = document.querySelectorAll('.glow-text');
+    
+    // Split text into spans - words for body, chars for headlines
+    glowTexts.forEach(text => {
+      const originalText = text.getAttribute('data-text');
+      const isAccent = text.classList.contains('accent');
+      const isBody = text.closest('.mission') !== null;
+      
+      if (isBody) {
+        // Wrap words for body text (preserves natural line breaks)
+        text.innerHTML = originalText.split(' ').map(word => 
+          `<span class="word">${word}</span>`
+        ).join(' ');
+      } else if (isAccent) {
+        text.innerHTML = originalText.split('').map(char => 
+          char === ' ' ? ' ' : `<span class="char accent-char">${char}</span>`
+        ).join('');
+      } else {
+        text.innerHTML = originalText.split('').map(char => 
+          char === ' ' ? ' ' : `<span class="char">${char}</span>`
+        ).join('');
+      }
+    });
+    
+    const allChars = document.querySelectorAll('.char');
+    const words = document.querySelectorAll('.word');
+    
+    let mouseX = 0, mouseY = 0;
+    
+    // Blob state
+    let blobX = window.innerWidth / 2;
+    let blobY = window.innerHeight / 2;
+    let blobVelX = 0;
+    let blobVelY = 0;
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let isAnimating = true;
+    
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    if (!isTouch) {
+      document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        
+        // Blob follows cursor lazily when not dragging
+        if (!isDragging && !isAnimating) {
+          const dx = mouseX - blobX;
+          const dy = mouseY - blobY;
+          blobVelX += dx * 0.0003;
+          blobVelY += dy * 0.0003;
+        }
+        
+        if (isDragging) {
+          blobX = e.clientX - dragOffsetX;
+          blobY = e.clientY - dragOffsetY;
+          updateBlobPosition();
+        }
+      });
+      
+      // Drag the blob
+      document.addEventListener('mousedown', (e) => {
+        const blobRect = blob.getBoundingClientRect();
+        const blobCenterX = blobRect.left + blobRect.width / 2;
+        const blobCenterY = blobRect.top + blobRect.height / 2;
+        const dist = Math.sqrt(Math.pow(e.clientX - blobCenterX, 2) + Math.pow(e.clientY - blobCenterY, 2));
+        
+        if (dist < blobRect.width / 3) {
+          isDragging = true;
+          isAnimating = false;
+          blob.classList.add('dragging');
+          blob.style.animation = 'morph 15s ease-in-out infinite';
+          dragOffsetX = e.clientX - blobCenterX;
+          dragOffsetY = e.clientY - blobCenterY;
+          blobX = blobCenterX;
+          blobY = blobCenterY;
+        }
+      });
+      
+      document.addEventListener('mouseup', (e) => {
+        if (isDragging) {
+          isDragging = false;
+          blob.classList.remove('dragging');
+          // Add velocity based on movement
+          blobVelX = (e.clientX - blobX) * 0.05;
+          blobVelY = (e.clientY - blobY) * 0.05;
+        }
+      });
+      
+      // Click to spawn mini blobs
+      document.addEventListener('click', (e) => {
+        if (!isDragging) {
+          spawnMiniBlob(e.clientX, e.clientY);
+        }
+      });
+    }
+    
+    // Blob physics
+    function updateBlobPosition() {
+      blob.style.left = blobX + 'px';
+      blob.style.top = blobY + 'px';
+      blob.style.marginLeft = '-30vmax';
+      blob.style.marginTop = '-30vmax';
+    }
+    
+    function animateBlob() {
+      if (!isDragging && !isAnimating) {
+        // Apply velocity
+        blobX += blobVelX;
+        blobY += blobVelY;
+        
+        // Friction
+        blobVelX *= 0.98;
+        blobVelY *= 0.98;
+        
+        // Bounce off edges
+        if (blobX < 0) { blobX = 0; blobVelX *= -0.5; }
+        if (blobX > window.innerWidth) { blobX = window.innerWidth; blobVelX *= -0.5; }
+        if (blobY < 0) { blobY = 0; blobVelY *= -0.5; }
+        if (blobY > window.innerHeight) { blobY = window.innerHeight; blobVelY *= -0.5; }
+        
+        // Slowly return to center if velocity is low
+        if (Math.abs(blobVelX) < 0.1 && Math.abs(blobVelY) < 0.1) {
+          const centerX = window.innerWidth / 2;
+          const centerY = window.innerHeight / 2;
+          blobX += (centerX - blobX) * 0.001;
+          blobY += (centerY - blobY) * 0.001;
+          
+          // Resume animation when back near center
+          if (Math.abs(blobX - centerX) < 50 && Math.abs(blobY - centerY) < 50) {
+            isAnimating = true;
+            blob.style.animation = 'wander 45s ease-in-out infinite, morph 15s ease-in-out infinite';
+            blob.style.left = '50%';
+            blob.style.top = '50%';
+          }
+        }
+        
+        updateBlobPosition();
+      }
+      
+      // Always update text colors
+      updateTextColors();
+      
+      requestAnimationFrame(animateBlob);
+    }
+    
+    animateBlob();
+    
+    // Spawn mini blobs that merge back
+    function spawnMiniBlob(x, y) {
+      const mini = document.createElement('div');
+      mini.className = 'mini-blob';
+      mini.style.left = x + 'px';
+      mini.style.top = y + 'px';
+      mini.style.marginLeft = '-7.5vmax';
+      mini.style.marginTop = '-7.5vmax';
+      document.body.appendChild(mini);
+      
+      // Fade in
+      requestAnimationFrame(() => {
+        mini.style.opacity = '1';
+      });
+      
+      // Move toward main blob and fade out
+      setTimeout(() => {
+        const blobRect = blob.getBoundingClientRect();
+        const targetX = blobRect.left + blobRect.width / 2;
+        const targetY = blobRect.top + blobRect.height / 2;
+        mini.style.transform = `translate(${targetX - x}px, ${targetY - y}px) scale(0.3)`;
+        mini.style.opacity = '0';
+      }, 100);
+      
+      // Remove element
+      setTimeout(() => {
+        mini.remove();
+      }, 2500);
+    }
+    
+    // Per-character/word color based on blob proximity
+    function updateTextColors() {
+      const blobRect = blob.getBoundingClientRect();
+      const blobCenterX = blobRect.left + blobRect.width / 2;
+      const blobCenterY = blobRect.top + blobRect.height / 2;
+      
+      // Headline characters
+      allChars.forEach(char => {
+        const charRect = char.getBoundingClientRect();
+        const charCenterX = charRect.left + charRect.width / 2;
+        const charCenterY = charRect.top + charRect.height / 2;
+        
+        const dist = Math.sqrt(
+          Math.pow(charCenterX - blobCenterX, 2) + 
+          Math.pow(charCenterY - blobCenterY, 2)
+        );
+        
+        const maxDist = window.innerWidth * 0.3;
+        const proximity = Math.max(0, 1 - dist / maxDist);
+        
+        if (char.classList.contains('accent-char')) {
+          // Accent chars: go from amber to bright/white
+          const r = Math.round(224 + (255 - 224) * proximity);
+          const g = Math.round(138 + (200 - 138) * proximity);
+          const b = Math.round(30 + (100 - 30) * proximity);
+          char.style.color = `rgb(${r}, ${g}, ${b})`;
+        } else {
+          // Regular chars: go from dark to amber
+          const r = Math.round(26 + (224 - 26) * proximity);
+          const g = Math.round(26 + (138 - 26) * proximity);
+          const b = Math.round(26 + (30 - 26) * proximity);
+          char.style.color = `rgb(${r}, ${g}, ${b})`;
+        }
+      });
+      
+      // Body text words
+      words.forEach(word => {
+        const wordRect = word.getBoundingClientRect();
+        const wordCenterX = wordRect.left + wordRect.width / 2;
+        const wordCenterY = wordRect.top + wordRect.height / 2;
+        
+        const dist = Math.sqrt(
+          Math.pow(wordCenterX - blobCenterX, 2) + 
+          Math.pow(wordCenterY - blobCenterY, 2)
+        );
+        
+        const maxDist = window.innerWidth * 0.35;
+        const proximity = Math.max(0, 1 - dist / maxDist);
+        
+        // Words: go from gray to amber-tinted
+        const r = Math.round(107 + (200 - 107) * proximity);
+        const g = Math.round(107 + (140 - 107) * proximity);
+        const b = Math.round(107 + (80 - 107) * proximity);
+        word.style.color = `rgb(${r}, ${g}, ${b})`;
+      });
+    }
+  </script>
+</body>
+</html>
